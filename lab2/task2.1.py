@@ -23,13 +23,10 @@ TP, TN, FP, FN = 0, 0, 0, 0
 for i in range(roi_start, roi_end):
 
     curr = cv2.imread("pedestrian/input/in%06d.jpg" % i)
-
     curr_gray = cv2.cvtColor(curr, cv2.COLOR_RGB2GRAY)
     prev_gray = cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY)
 
-    mod_diff = cv2.absdiff(prev_gray.astype("int"), curr_gray.astype("int")).astype(
-        np.uint8
-    )
+    mod_diff = cv2.absdiff(prev_gray.astype("int"), curr_gray.astype("int")).astype(np.uint8)
     _, mod_diff = cv2.threshold(mod_diff, 17, 255, cv2.THRESH_BINARY)
 
     # preprocessing binary image
@@ -47,8 +44,6 @@ for i in range(roi_start, roi_end):
     mod_diff = cv2.morphologyEx(mod_diff, cv2.MORPH_CLOSE, kernel)
 
     mod_diff = cv2.medianBlur(mod_diff, 9)
-
-
 
     # calculate parameters
     ground_truth_mask = cv2.imread("pedestrian/groundtruth/gt%06d.png" % i)
