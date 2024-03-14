@@ -32,13 +32,23 @@ for i in range(roi_start, roi_end):
     )
     _, mod_diff = cv2.threshold(mod_diff, 17, 255, cv2.THRESH_BINARY)
 
-    # medianBlur
+    # preprocessing binary image
     mod_diff = cv2.medianBlur(mod_diff, 5)
 
-    # # dilating and eroding
     kernel = np.ones((5, 5), np.uint8)
     mod_diff = cv2.dilate(mod_diff, kernel, iterations=1)
     mod_diff = cv2.erode(mod_diff, kernel, iterations=1)
+
+    kernel = np.ones((3, 3), np.uint8)
+    mod_diff = cv2.dilate(mod_diff, kernel, iterations=1)
+    mod_diff = cv2.erode(mod_diff, kernel, iterations=1)
+
+    mod_diff = cv2.morphologyEx(mod_diff, cv2.MORPH_OPEN, kernel)
+    mod_diff = cv2.morphologyEx(mod_diff, cv2.MORPH_CLOSE, kernel)
+
+    mod_diff = cv2.medianBlur(mod_diff, 9)
+
+
 
     # calculate parameters
     ground_truth_mask = cv2.imread("pedestrian/groundtruth/gt%06d.png" % i)
@@ -70,30 +80,31 @@ for i in range(roi_start, roi_end):
         pi = np.argmax(tab)  # finding the index of the largest item
         pi = pi + 1  # increment because we want the index in stats , not in tab
         # drawing a bbox
-        cv2.rectangle(
-            I_VIS,
-            (stats[pi, 0], stats[pi, 1]),
-            (stats[pi, 0] + stats[pi, 2], stats[pi, 1] + stats[pi, 3]),
-            (0, 0, 0),
-            2,
-        )
-        # print information about the field and the number of the largest element
-        cv2.putText(
-            I_VIS,
-            "%f" % stats[pi, 4],
-            (stats[pi, 0], stats[pi, 1]),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            (0, 0, 0),
-        )
-        cv2.putText(
-            I_VIS,
-            "%d" % pi,
-            (np.int32(centroids[pi, 0]), np.int32(centroids[pi, 1])),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            1,
-            (0, 0, 0),
-        )
+        if stats[pi, 4] > 100:
+            cv2.rectangle(
+                I_VIS,
+                (stats[pi, 0], stats[pi, 1]),
+                (stats[pi, 0] + stats[pi, 2], stats[pi, 1] + stats[pi, 3]),
+                (0, 0, 0),
+                2,
+            )
+            # print information about the field and the number of the largest element
+            cv2.putText(
+                I_VIS,
+                "%f" % stats[pi, 4],
+                (stats[pi, 0], stats[pi, 1]),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0, 0, 0),
+            )
+            cv2.putText(
+                I_VIS,
+                "%d" % pi,
+                (np.int32(centroids[pi, 0]), np.int32(centroids[pi, 1])),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1,
+                (0, 0, 0),
+            )
 
     cv2.namedWindow("Resized_Window1", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("Resized_Window1", 1000, 1000)
