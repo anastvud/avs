@@ -9,6 +9,15 @@ __pycache__/
 # vscode
 .vscode/
 
+# images
+*.png 
+*.jpg
+
+# zip
+*.zip
+
+*.db
+
 # Distribution / packaging
 .Python
 build/
