@@ -59,7 +59,7 @@ def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
     return TP, TN, FP, FN
 
 
-prev = cv2.imread("highway/input/in000300.jpg")
+prev = cv2.imread("pedestrian/input/in000300.jpg")
 N = 60 
 BUF = np.zeros((prev.shape[0], prev.shape[1], N), np.uint8)
 iN = 0
@@ -67,30 +67,43 @@ check = False
 median = mean = None
 TP_mean, TN_mean, FP_mean, FN_mean = 0, 0, 0, 0
 TP_median, TN_median, FP_median, FN_median = 0, 0, 0, 0
-
+background_model_median = background_model_mean = None
+alpha = 0.03
 
 for i in range(1, 1100):
-    curr = cv2.imread("highway/input/in%06d.jpg" % i)
+    curr = cv2.imread("pedestrian/input/in%06d.jpg" % i)
     curr_gray = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
 
     if iN < N:
-        BUF[:, :, iN] = curr_gray
+        # mean aproximation
+        if iN == 0:
+            background_model_mean = curr_gray.astype(np.float64)
+        else:
+            background_model_mean = alpha * curr_gray.astype(np.float64) + (1 - alpha) * background_model_mean
+
+        
+        # median approximation
+        if iN == 0:
+            background_model_median = curr_gray.astype(np.float64)
+        else:
+            diff = np.subtract(background_model_median, curr_gray.astype(np.float64))
+            background_model_median = np.where(diff < 0, background_model_median + 1, 
+                                        np.where(diff > 0, background_model_median - 1, background_model_median))
+        
         iN += 1
-    elif iN == N and check is False:
-        median, mean = calculate_median_mean(BUF)
-        check = True
-    elif iN == N and check is True:
-        median_diff = cv2.absdiff(curr_gray.astype("int"), median.astype("int")).astype(
+
+    elif iN == N:
+        median_diff = cv2.absdiff(curr_gray.astype("int"), background_model_median.astype("int")).astype(
             np.uint8
         )
         median_diff = binarization(median_diff)
 
-        mean_diff = cv2.absdiff(curr_gray.astype("int"), mean.astype("int")).astype(
+        mean_diff = cv2.absdiff(curr_gray.astype("int"), background_model_mean.astype("int")).astype(
             np.uint8
         )
         mean_diff = binarization(mean_diff)
 
-        ground_truth_mask = cv2.imread("highway/groundtruth/gt%06d.png" % i)
+        ground_truth_mask = cv2.imread("pedestrian/groundtruth/gt%06d.png" % i)
         ground_truth_mask = cv2.cvtColor(ground_truth_mask, cv2.COLOR_BGR2GRAY)
 
         TP_mean, TN_mean, FP_mean, FN_mean = calculate_parameters(
