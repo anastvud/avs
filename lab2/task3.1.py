@@ -1,9 +1,6 @@
 import cv2
 import numpy as np
 
-TP, TN, FP, FN = 0, 0, 0, 0
-
-
 def calculate_metrics(TP, TN, FP, FN):
     precision = TP / (TP + FP) if (TP + FP) != 0 else 0
     recall = TP / (TP + FN) if (TP + FN) != 0 else 0
@@ -34,7 +31,7 @@ def binarization(img):
     img = cv2.medianBlur(img, 9)
     return img
 
-def calculate_parameters(img, ground_truth):
+def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
     TP_M = np.logical_and((img == 255), (ground_truth == 255))
     TP_S = np.sum(TP_M)
     TP += TP_S
@@ -56,7 +53,7 @@ def calculate_parameters(img, ground_truth):
 
 
 # Read the first frame
-prev = cv2.imread("pedestrian/input/in000300.jpg")
+prev = cv2.imread("highway/input/in000300.jpg")
 
 # Constants
 N = 60  # Buffer size
@@ -70,7 +67,7 @@ TP_median, TN_median, FP_median, FN_median = 0, 0, 0, 0
 
 for i in range(1, 1100):
     # Read current frame
-    curr = cv2.imread("pedestrian/input/in%06d.jpg" % i)
+    curr = cv2.imread("highway/input/in%06d.jpg" % i)
     curr_gray = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
 
     # Buffer handling
@@ -91,21 +88,20 @@ for i in range(1, 1100):
         mean_diff = cv2.absdiff(curr_gray.astype("int"), mean.astype("int")).astype(np.uint8)
         mean_diff = binarization(mean_diff)
 
-        ground_truth_mask = cv2.imread("pedestrian/groundtruth/gt%06d.png" % i)
+        ground_truth_mask = cv2.imread("highway/groundtruth/gt%06d.png" % i)
         ground_truth_mask = cv2.cvtColor(ground_truth_mask, cv2.COLOR_BGR2GRAY)
 
-        TP_mean, TN_mean, FP_mean, FN_mean = calculate_parameters(median_diff, ground_truth_mask)
+        TP_mean, TN_mean, FP_mean, FN_mean = calculate_parameters(median_diff, ground_truth_mask, TP_mean, TN_mean, FP_mean, FN_mean)
         
-        # TP, TN, FP, FN = 0, 0, 0, 0
-        # TP_median, TN_median, FP_median, FN_median = calculate_parameters(mean_diff, ground_truth_mask)
+        TP_median, TN_median, FP_median, FN_median = calculate_parameters(mean_diff, ground_truth_mask, TP_median, TN_median, FP_median, FN_median)
 
 
 
 
-        # cv2.namedWindow("mean", cv2.WINDOW_NORMAL)
-        # cv2.resizeWindow("mean", 1000, 1000)
-        # cv2.imshow("mean", median_diff)
-        # cv2.waitKey(10)
+        cv2.namedWindow("mean", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("mean", 1000, 1000)
+        cv2.imshow("mean", median_diff)
+        cv2.waitKey(10)
 
 
         # cv2.namedWindow("median", cv2.WINDOW_NORMAL)
@@ -122,8 +118,8 @@ print("Precision:", precision)
 print("Recall:", recall)
 print("F1 Score:", f1_score)
 
-# precision, recall, f1_score = calculate_metrics(TP_median, TN_median, FP_median, FN_median)
-# print("For median")
-# print("Precision:", precision)
-# print("Recall:", recall)
-# print("F1 Score:", f1_score)
+precision, recall, f1_score = calculate_metrics(TP_median, TN_median, FP_median, FN_median)
+print("For median")
+print("Precision:", precision)
+print("Recall:", recall)
+print("F1 Score:", f1_score)
