@@ -1,16 +1,23 @@
 import cv2
 import numpy as np
 
+
 def calculate_metrics(TP, TN, FP, FN):
     precision = TP / (TP + FP) if (TP + FP) != 0 else 0
     recall = TP / (TP + FN) if (TP + FN) != 0 else 0
-    f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) != 0 else 0
+    f1_score = (
+        2 * precision * recall / (precision + recall)
+        if (precision + recall) != 0
+        else 0
+    )
     return precision, recall, f1_score
+
 
 def calculate_mean_median(buffer):
     median = np.median(buffer, axis=2).astype(np.uint8)
     mean = np.mean(buffer, axis=2).astype(np.uint8)
     return median, mean
+
 
 def binarization(img):
     _, img = cv2.threshold(img, 18, 255, cv2.THRESH_BINARY)
@@ -30,6 +37,7 @@ def binarization(img):
 
     img = cv2.medianBlur(img, 9)
     return img
+
 
 def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
     TP_M = np.logical_and((img == 255), (ground_truth == 255))
@@ -51,12 +59,8 @@ def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
     return TP, TN, FP, FN
 
 
-
-# Read the first frame
 prev = cv2.imread("highway/input/in000300.jpg")
-
-# Constants
-N = 60  # Buffer size
+N = 60 
 BUF = np.zeros((prev.shape[0], prev.shape[1], N), np.uint8)
 iN = 0
 check = False
@@ -66,49 +70,45 @@ TP_median, TN_median, FP_median, FN_median = 0, 0, 0, 0
 
 
 for i in range(1, 1100):
-    # Read current frame
     curr = cv2.imread("highway/input/in%06d.jpg" % i)
     curr_gray = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
 
-    # Buffer handling
     if iN < N:
         BUF[:, :, iN] = curr_gray
         iN += 1
-        print("curr in buffer", iN)
-
-    if iN == 60 and check is False:
+    elif iN == N and check is False:
         median, mean = calculate_mean_median(BUF)
         check = True
-
-    if iN == 60 and check is True:
-
-        median_diff = cv2.absdiff(curr_gray.astype("int"), median.astype("int")).astype(np.uint8)
+    elif iN == N and check is True:
+        median_diff = cv2.absdiff(curr_gray.astype("int"), median.astype("int")).astype(
+            np.uint8
+        )
         median_diff = binarization(median_diff)
 
-        mean_diff = cv2.absdiff(curr_gray.astype("int"), mean.astype("int")).astype(np.uint8)
+        mean_diff = cv2.absdiff(curr_gray.astype("int"), mean.astype("int")).astype(
+            np.uint8
+        )
         mean_diff = binarization(mean_diff)
 
         ground_truth_mask = cv2.imread("highway/groundtruth/gt%06d.png" % i)
         ground_truth_mask = cv2.cvtColor(ground_truth_mask, cv2.COLOR_BGR2GRAY)
 
-        TP_mean, TN_mean, FP_mean, FN_mean = calculate_parameters(median_diff, ground_truth_mask, TP_mean, TN_mean, FP_mean, FN_mean)
-        
-        TP_median, TN_median, FP_median, FN_median = calculate_parameters(mean_diff, ground_truth_mask, TP_median, TN_median, FP_median, FN_median)
+        TP_mean, TN_mean, FP_mean, FN_mean = calculate_parameters(
+            median_diff, ground_truth_mask, TP_mean, TN_mean, FP_mean, FN_mean
+        )
+        TP_median, TN_median, FP_median, FN_median = calculate_parameters(
+            mean_diff, ground_truth_mask, TP_median, TN_median, FP_median, FN_median
+        )
 
-
-
-
-        cv2.namedWindow("mean", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("mean", 1000, 1000)
-        cv2.imshow("mean", median_diff)
-        cv2.waitKey(10)
-
+        # cv2.namedWindow("mean", cv2.WINDOW_NORMAL)
+        # cv2.resizeWindow("mean", 1000, 1000)
+        # cv2.imshow("mean", median_diff)
+        # cv2.waitKey(10)
 
         # cv2.namedWindow("median", cv2.WINDOW_NORMAL)
         # cv2.resizeWindow("median", 1000, 1000)
         # cv2.imshow("median", median_diff)
         # cv2.waitKey(10)
-
 
     prev = curr
 
