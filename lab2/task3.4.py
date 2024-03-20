@@ -60,15 +60,7 @@ def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
 
 
 prev = cv2.imread("highway/input/in000300.jpg")
-N = 60 
-BUF = np.zeros((prev.shape[0], prev.shape[1], N), np.uint8)
-iN = 0
-check = False
-median = mean = None
 TP, TN, FP, FN= 0, 0, 0, 0
-background_model_median = background_model_mean = None
-alpha = 0.03
-
 mog2 = cv2.createBackgroundSubtractorMOG2(history=250, varThreshold=16, detectShadows=True)
 
 
