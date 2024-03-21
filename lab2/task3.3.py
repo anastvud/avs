@@ -13,12 +13,6 @@ def calculate_metrics(TP, TN, FP, FN):
     return precision, recall, f1_score
 
 
-def calculate_median_mean(buffer):
-    median = np.median(buffer, axis=2).astype(np.uint8)
-    mean = np.mean(buffer, axis=2).astype(np.uint8)
-    return median, mean
-
-
 def binarization(img):
     _, img = cv2.threshold(img, 18, 255, cv2.THRESH_BINARY)
 
@@ -60,60 +54,34 @@ def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
 
 
 prev = cv2.imread("pedestrian/input/in000300.jpg")
-N = 60 
+N, iN = 60, 0
 BUF = np.zeros((prev.shape[0], prev.shape[1], N), np.uint8)
-iN = 0
-check = False
-median = mean = None
 TP_mean, TN_mean, FP_mean, FN_mean = 0, 0, 0, 0
-TP_median, TN_median, FP_median, FN_median = 0, 0, 0, 0
-background_model_median = background_model_mean = None
-alpha = 0.03
+background_model_mean = None
 
 for i in range(1, 1100):
     curr = cv2.imread("pedestrian/input/in%06d.jpg" % i)
     curr_gray = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
 
     if iN < N:
-        # mean aproximation
         if iN == 0:
             background_model_mean = curr_gray.astype(np.float64)
         else:
             mask = cv2.inRange(BUF[:, :, iN], 0, 1)
             updated_model = np.where(mask == 0, np.mean(BUF, axis=2), background_model_mean)           
             background_model_mean = updated_model.astype(np.uint8)
-
-        
-        # median approximation
-        if iN == 0:
-            background_model_median = curr_gray.astype(np.float64)
-        else:
-            diff = np.subtract(background_model_median, curr_gray.astype(np.float64))
-            mask = cv2.inRange(BUF[:, :, iN], 0, 1)
-            updated_model = np.where(mask == 0, np.median(BUF, axis=2), background_model_median)
-            background_model_median = updated_model.astype(np.uint8)
-        
         iN += 1
 
     elif iN == N:
-        median_diff = cv2.absdiff(curr_gray.astype("int"), background_model_median.astype("int")).astype(
-            np.uint8
-        )
-        median_diff = binarization(median_diff)
-
-        mean_diff = cv2.absdiff(curr_gray.astype("int"), background_model_mean.astype("int")).astype(
-            np.uint8
-        )
+        mean_diff = cv2.absdiff(
+            curr_gray.astype("int"), background_model_mean.astype("int")
+        ).astype(np.uint8)
         mean_diff = binarization(mean_diff)
 
         ground_truth_mask = cv2.imread("pedestrian/groundtruth/gt%06d.png" % i)
         ground_truth_mask = cv2.cvtColor(ground_truth_mask, cv2.COLOR_BGR2GRAY)
-
         TP_mean, TN_mean, FP_mean, FN_mean = calculate_parameters(
-            median_diff, ground_truth_mask, TP_mean, TN_mean, FP_mean, FN_mean
-        )
-        TP_median, TN_median, FP_median, FN_median = calculate_parameters(
-            mean_diff, ground_truth_mask, TP_median, TN_median, FP_median, FN_median
+            mean_diff, ground_truth_mask, TP_mean, TN_mean, FP_mean, FN_mean
         )
 
         cv2.namedWindow("mean", cv2.WINDOW_NORMAL)
@@ -121,21 +89,10 @@ for i in range(1, 1100):
         cv2.imshow("mean", mean_diff)
         cv2.waitKey(10)
 
-        cv2.namedWindow("median", cv2.WINDOW_NORMAL)
-        cv2.resizeWindow("median", 1000, 1000)
-        cv2.imshow("median", median_diff)
-        cv2.waitKey(10)
-
     prev = curr
 
 precision, recall, f1_score = calculate_metrics(TP_mean, TN_mean, FP_mean, FN_mean)
 print("For mean")
-print("Precision:", precision)
-print("Recall:", recall)
-print("F1 Score:", f1_score)
-print()
-precision, recall, f1_score = calculate_metrics(TP_median, TN_median, FP_median, FN_median)
-print("For median")
 print("Precision:", precision)
 print("Recall:", recall)
 print("F1 Score:", f1_score)

@@ -75,24 +75,19 @@ for i in range(1, 1100):
     curr_gray = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
 
     if iN < N:
-        # mean aproximation
+        # aproximation
         if iN == 0:
             background_model_mean = curr_gray.astype(np.float64)
+            background_model_median = curr_gray.astype(np.float64)
         else:
             background_model_mean = alpha * curr_gray.astype(np.float64) + (1 - alpha) * background_model_mean
 
-        
-        # median approximation
-        if iN == 0:
-            background_model_median = curr_gray.astype(np.float64)
-        else:
             diff = np.subtract(background_model_median, curr_gray.astype(np.float64))
             background_model_median = np.where(diff < 0, background_model_median + 1, 
                                         np.where(diff > 0, background_model_median - 1, background_model_median))
-        
         iN += 1
 
-    elif iN == N:
+    else:
         median_diff = cv2.absdiff(curr_gray.astype("int"), background_model_median.astype("int")).astype(
             np.uint8
         )

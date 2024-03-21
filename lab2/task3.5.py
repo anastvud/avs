@@ -13,32 +13,6 @@ def calculate_metrics(TP, TN, FP, FN):
     return precision, recall, f1_score
 
 
-def calculate_median_mean(buffer):
-    median = np.median(buffer, axis=2).astype(np.uint8)
-    mean = np.mean(buffer, axis=2).astype(np.uint8)
-    return median, mean
-
-
-def binarization(img):
-    _, img = cv2.threshold(img, 18, 255, cv2.THRESH_BINARY)
-
-    img = cv2.medianBlur(img, 5)
-
-    kernel = np.ones((5, 5), np.uint8)
-    img = cv2.dilate(img, kernel, iterations=1)
-    img = cv2.erode(img, kernel, iterations=1)
-
-    kernel = np.ones((3, 3), np.uint8)
-    img = cv2.dilate(img, kernel, iterations=1)
-    img = cv2.erode(img, kernel, iterations=1)
-
-    img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
-    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
-
-    img = cv2.medianBlur(img, 9)
-    return img
-
-
 def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
     TP_M = np.logical_and((img == 255), (ground_truth == 255))
     TP_S = np.sum(TP_M)
@@ -60,7 +34,7 @@ def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
 
 
 prev = cv2.imread("highway/input/in000300.jpg")
-TP, TN, FP, FN= 0, 0, 0, 0
+TP, TN, FP, FN = 0, 0, 0, 0
 backSub = cv2.createBackgroundSubtractorKNN(dist2Threshold=500, detectShadows=False)
 
 
@@ -73,11 +47,7 @@ for i in range(300, 1100):
     ground_truth_mask = cv2.imread("highway/groundtruth/gt%06d.png" % i)
     ground_truth_mask = cv2.cvtColor(ground_truth_mask, cv2.COLOR_BGR2GRAY)
 
-
-    TP, TN ,FP, FN = calculate_parameters(
-        fg_mask, ground_truth_mask, TP, TN, FP, FN
-    )
-
+    TP, TN, FP, FN = calculate_parameters(fg_mask, ground_truth_mask, TP, TN, FP, FN)
 
     cv2.namedWindow("original", cv2.WINDOW_NORMAL)
     cv2.resizeWindow("original", 1000, 1000)
