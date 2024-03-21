@@ -53,14 +53,14 @@ def calculate_parameters(img, ground_truth, TP, TN, FP, FN):
     return TP, TN, FP, FN
 
 
-prev = cv2.imread("pedestrian/input/in000300.jpg")
+prev = cv2.imread("highway/input/in000300.jpg")
 N, iN = 60, 0
 BUF = np.zeros((prev.shape[0], prev.shape[1], N), np.uint8)
 TP_mean, TN_mean, FP_mean, FN_mean = 0, 0, 0, 0
 background_model_mean = None
 
 for i in range(1, 1100):
-    curr = cv2.imread("pedestrian/input/in%06d.jpg" % i)
+    curr = cv2.imread("highway/input/in%06d.jpg" % i)
     curr_gray = cv2.cvtColor(curr, cv2.COLOR_BGR2GRAY)
 
     if iN < N:
@@ -72,13 +72,13 @@ for i in range(1, 1100):
             background_model_mean = updated_model.astype(np.uint8)
         iN += 1
 
-    elif iN == N:
+    else:
         mean_diff = cv2.absdiff(
             curr_gray.astype("int"), background_model_mean.astype("int")
         ).astype(np.uint8)
         mean_diff = binarization(mean_diff)
 
-        ground_truth_mask = cv2.imread("pedestrian/groundtruth/gt%06d.png" % i)
+        ground_truth_mask = cv2.imread("highway/groundtruth/gt%06d.png" % i)
         ground_truth_mask = cv2.cvtColor(ground_truth_mask, cv2.COLOR_BGR2GRAY)
         TP_mean, TN_mean, FP_mean, FN_mean = calculate_parameters(
             mean_diff, ground_truth_mask, TP_mean, TN_mean, FP_mean, FN_mean

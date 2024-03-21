@@ -32,9 +32,6 @@ def binarization(img):
     img = cv2.dilate(img, kernel, iterations=1)
     img = cv2.erode(img, kernel, iterations=1)
 
-    img = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel)
-    img = cv2.morphologyEx(img, cv2.MORPH_CLOSE, kernel)
-
     img = cv2.medianBlur(img, 9)
     return img
 
@@ -94,21 +91,21 @@ for i in range(1, 1100):
         ground_truth_mask = cv2.cvtColor(ground_truth_mask, cv2.COLOR_BGR2GRAY)
 
         TP_mean, TN_mean, FP_mean, FN_mean = calculate_parameters(
-            median_diff, ground_truth_mask, TP_mean, TN_mean, FP_mean, FN_mean
+            mean_diff, ground_truth_mask, TP_mean, TN_mean, FP_mean, FN_mean
         )
         TP_median, TN_median, FP_median, FN_median = calculate_parameters(
-            mean_diff, ground_truth_mask, TP_median, TN_median, FP_median, FN_median
+            median_diff, ground_truth_mask, TP_median, TN_median, FP_median, FN_median
         )
 
-        # cv2.namedWindow("mean", cv2.WINDOW_NORMAL)
-        # cv2.resizeWindow("mean", 1000, 1000)
-        # cv2.imshow("mean", mean_diff)
-        # cv2.waitKey(10)
+        cv2.namedWindow("mean", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("mean", 1000, 1000)
+        cv2.imshow("mean", mean_diff)
+        cv2.waitKey(10)
 
-        # cv2.namedWindow("median", cv2.WINDOW_NORMAL)
-        # cv2.resizeWindow("median", 1000, 1000)
-        # cv2.imshow("median", median_diff)
-        # cv2.waitKey(10)
+        cv2.namedWindow("median", cv2.WINDOW_NORMAL)
+        cv2.resizeWindow("median", 1000, 1000)
+        cv2.imshow("median", median_diff)
+        cv2.waitKey(10)
 
     prev = curr
 
