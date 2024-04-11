@@ -2,12 +2,10 @@ import cv2
 import numpy as np
 
 
-def of(I_org, I, J, W2=3, dY=3, dX=3):
+def of(I, J, W2=3, dY=3, dX=3):
 
     u = np.zeros((I.shape[0], I.shape[1]), dtype=np.float32)
     v = np.zeros((I.shape[0], I.shape[1]), dtype=np.float32)
-
-    mod_diff = cv2.absdiff(I.astype("int"), J.astype("int")).astype(np.uint8)
 
     for j in range(W2, I.shape[0] - W2):
         for i in range(W2, I.shape[1] - W2):
@@ -48,8 +46,8 @@ def vis_flow(u, v, YX, name):
 
     optical_flow_hsv = np.zeros((YX[0], YX[1], 3), dtype=np.uint8)
     optical_flow_hsv[..., 0] = angle
-    optical_flow_hsv[..., 1] = 255
-    optical_flow_hsv[..., 2] = magnitude
+    optical_flow_hsv[..., 1] = magnitude
+    optical_flow_hsv[..., 2] = 255
     optical_flow_bgr = cv2.cvtColor(optical_flow_hsv, cv2.COLOR_HSV2BGR)
 
     cv2.namedWindow(name, cv2.WINDOW_NORMAL)
@@ -58,12 +56,13 @@ def vis_flow(u, v, YX, name):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+if (__name__ == "__main__"):
 
-I = cv2.imread("/home/nastia/agh/avs/lab4/lab_files/I.jpg")
-J = cv2.imread("/home/nastia/agh/avs/lab4/lab_files/J.jpg")
+    I = cv2.imread("/home/nastia/agh/avs/lab4/lab_files/I.jpg")
+    J = cv2.imread("/home/nastia/agh/avs/lab4/lab_files/J.jpg")
 
-I = cv2.cvtColor(I, cv2.COLOR_RGB2GRAY)
-J = cv2.cvtColor(J, cv2.COLOR_RGB2GRAY)
+    I = cv2.cvtColor(I, cv2.COLOR_RGB2GRAY)
+    J = cv2.cvtColor(J, cv2.COLOR_RGB2GRAY)
 
-u, v = of(I, I, J)
-vis_flow(u, v, I.shape, "Optical Flow")
+    u, v = of(I, I, J)
+    vis_flow(u, v, I.shape, "Optical Flow")
