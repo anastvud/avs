@@ -1,1 +1,1 @@
-export L2_REPO_ROOT=$(git rev-parse --show-toplevel)
+export REPO_ROOT=$(git rev-parse --show-toplevel)
