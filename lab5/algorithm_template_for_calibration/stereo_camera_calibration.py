@@ -1,7 +1,6 @@
 import os
 import cv2
 import numpy as np
-import matplotlib.pyplot as plt
 
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -29,63 +28,101 @@ image_dir = os.getenv("REPO_ROOT") + "/lab5/dataset/pairs/"
 
 number_of_images = 50
 
-def get_image_points(image_dir, number_of_images, side):    # string left or right side
+def get_image_points(image_dir, number_of_images):    # string left or right side
     objpoints = []  # 3d point in real world space
-    imgpoints = []  # 2d points in image plane.
-
+    imgpoints_left = []  # 2d points in image plane.
+    imgpoints_right = []  # 2d points in image plane.
+    
     for i in range(1, number_of_images):
-        # if i == 30: 
-        #     continue
-        
         # read image
-        img = cv2.imread(image_dir + side + "_%02d.png" % i)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        right_img = cv2.imread(image_dir + "right_%02d.png" % i)
+        right_gray = cv2.cvtColor(right_img, cv2.COLOR_BGR2GRAY)
+
+        left_img = cv2.imread(image_dir + "left_%02d.png" % i)
+        left_gray = cv2.cvtColor(left_img, cv2.COLOR_BGR2GRAY)
 
         # Find the chess board corners
-        ret, corners = cv2.findChessboardCorners(
-            gray,
+        ret_left, corners_left = cv2.findChessboardCorners(
+            left_gray,
             (width, height),
             cv2.CALIB_CB_ADAPTIVE_THRESH
             + cv2.CALIB_CB_FAST_CHECK
             + cv2.CALIB_CB_NORMALIZE_IMAGE,
         )
 
-        Y, X, channels = img.shape
+        ret_right, corners_right = cv2.findChessboardCorners(
+            right_gray,
+            (width, height),
+            cv2.CALIB_CB_ADAPTIVE_THRESH
+            + cv2.CALIB_CB_FAST_CHECK
+            + cv2.CALIB_CB_NORMALIZE_IMAGE,
+        )
+
+        Y, X, channels = right_img.shape
 
         # skip images where the corners of the chessboard are too close to the edges of the image
-        if ret == True:
-            minRx = corners[:, :, 0].min()
-            maxRx = corners[:, :, 0].max()
-            minRy = corners[:, :, 1].min()
-            maxRy = corners[:, :, 1].max()
+        if ret_right  and ret_left:
+            minRx_left = corners_left[:, :, 0].min()
+            maxRx_left = corners_left[:, :, 0].max()
+            minRy_left = corners_left[:, :, 1].min()
+            maxRy_left = corners_left[:, :, 1].max()
 
             border_threshold_x = X / 12
             border_threshold_y = Y / 12
 
             x_thresh_bad = False
-            if minRx < border_threshold_x:
+            if minRx_left < border_threshold_x:
                 x_thresh_bad = True
 
             y_thresh_bad = False
-            if minRy < border_threshold_y:
+            if minRy_left < border_threshold_y:
                 y_thresh_bad = True
 
             if (y_thresh_bad == True) or (x_thresh_bad == True):
                 continue
 
+
+
+
+
+
+            minRx_right = corners_right[:, :, 0].min()
+            maxRx_right = corners_right[:, :, 0].max()
+            minRy_right = corners_right[:, :, 1].min()
+            maxRy_right = corners_right[:, :, 1].max()
+
+            x_thresh_bad = False
+            if minRx_right < border_threshold_x:
+                x_thresh_bad = True
+
+            y_thresh_bad = False
+            if minRy_right < border_threshold_y:
+                y_thresh_bad = True
+
+            if (y_thresh_bad == True) or (x_thresh_bad == True):
+                continue
+
+
+        if ret_right and ret_left:
+            
             objpoints.append(objp)
 
             # improving the location of points (sub-pixel)
-            corners2 = cv2.cornerSubPix(gray, corners, (3, 3), (-1, -1), criteria)
+            corners2 = cv2.cornerSubPix(left_gray, corners_left, (3, 3), (-1, -1), criteria)
+            imgpoints_left.append(corners2)
 
-            imgpoints.append(corners2)
 
-            # Draw and display the corners
-            # Show the image to see if pattern is found ! imshow function.
-            # cv2.drawChessboardCorners(img, (width, height), corners2, ret)
+            # improving the location of points (sub-pixel)
+            corners3 = cv2.cornerSubPix(right_gray, corners_right, (3, 3), (-1, -1), criteria)
+            imgpoints_right.append(corners3)   
+
+
+            # # Draw and display the corners
+            # # Show the image to see if pattern is found ! imshow function.
+            # cv2.drawChessboardCorners(left_img, (width, height), corners2, ret_left)
             # cv2.namedWindow("Chessboard corners", cv2.WINDOW_NORMAL)
             # cv2.resizeWindow("Chessboard corners", 750, 750)
-            # cv2.imshow("Chessboard corners", img)
+            # cv2.imshow("Chessboard corners", left_img)
             # cv2.waitKey(10)
         else:
             print("Chessboard couldn't detected. Image pair: ", i)
@@ -93,7 +130,7 @@ def get_image_points(image_dir, number_of_images, side):    # string left or rig
 
     cv2.destroyAllWindows()
 
-    return objpoints, imgpoints
+    return objpoints, imgpoints_left, imgpoints_right
 
 
 def get_K_D(objpoints, imgpoints, image_size):
@@ -116,52 +153,21 @@ def get_K_D(objpoints, imgpoints, image_size):
     )
 
     return K, D
-# Let's rectify our results
-
-# # Display camera parameters
-# print("Camera matrix K:")
-# print(K)
-# print("\nDistortion coefficients D:")
-# print(D)
-# print("\nFocal length:")
-# print(f"{K[0][0]} {K[1][1]}")
-# print("\nPrincipal points:")
-# print(f"{K[0][2]} {K[1][2]}")
 
 
-# # Distortion correction for the entire set of images
-# for i in range(1, number_of_images):
-#     img = cv2.imread(image_dir + "left_%02d.png" % i)
-#     undistorted_image = cv2.remap(
-#         img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT
-#     )
+objpoints, left_imgpoints, right_imgpoints = get_image_points(image_dir, number_of_images)
 
-#     cv2.namedWindow("Original image", cv2.WINDOW_NORMAL)
-#     cv2.resizeWindow("Original image", 750, 750)
-#     cv2.imshow("Original image", img)
-
-#     cv2.namedWindow("Undistorted image", cv2.WINDOW_NORMAL)
-#     cv2.resizeWindow("Undistorted image", 750, 750)
-#     cv2.imshow("Undistorted image", undistorted_image)
-
-#     cv2.waitKey(500)
-
-# cv2.destroyAllWindows()
-
-left_objpoints, left_imgpoints = get_image_points(image_dir, number_of_images, "left")
-right_objpoints, right_imgpoints = get_image_points(image_dir, number_of_images, "right")
-
-K_left, D_left = get_K_D(left_objpoints, left_imgpoints, image_size)
-K_right, D_right = get_K_D(right_objpoints, right_imgpoints, image_size)
+K_left, D_left = get_K_D(objpoints, left_imgpoints, image_size)
+K_right, D_right = get_K_D(objpoints, right_imgpoints, image_size)
 
 imgpointsLeft = np.asarray(left_imgpoints, dtype=np.float64)
 imgpointsRight = np.asarray(right_imgpoints, dtype=np.float64)
-left_objpoints = np.asarray(left_objpoints, dtype=np.float64)
+objpoints = np.asarray(objpoints, dtype=np.float64)
 
 
 
 (RMS, _, _, _, _, rotationMatrix, translationVector) = cv2.fisheye.stereoCalibrate(
-        left_objpoints, imgpointsLeft, imgpointsRight,
+        objpoints, imgpointsLeft, imgpointsRight,
         K_left, D_left,
         K_right, D_right,
         image_size, None, None,
@@ -209,4 +215,13 @@ visRectify[:,XX:XX*2:,:] = dst_R   # right image assignment
 for y in range(0,YY,10):
     cv2.line(visRectify, (0,y), (XX*2,y), (255,0,0))
 
+N, XX, YY = dst_L.shape[::-1] # RGB image size
+
+normal = np.zeros((YY, XX*2, N), np.uint8) # create a new image with a new size (height, 2*width)
+normal[:,0:XX:,:] = img_l      # left image assignment
+normal[:,XX:XX*2:,:] = img_r   # right image assignment
+
+
 cv2.imshow('visRectify',visRectify)  # display image with lines
+cv2.imshow('normal',normal)  # display image with lines
+cv2.waitKey(0)
