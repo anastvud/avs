@@ -203,25 +203,25 @@ dst_L = cv2.remap(img_l, map1_left, map2_left, cv2.INTER_LINEAR)
 dst_R = cv2.remap(img_r, map1_right, map2_right, cv2.INTER_LINEAR)
 
 
+if __name__ == "__main__":
+
+    N, XX, YY = dst_L.shape[::-1] # RGB image size
+
+    visRectify = np.zeros((YY, XX*2, N), np.uint8) # create a new image with a new size (height, 2*width)
+    visRectify[:,0:XX:,:] = dst_L      # left image assignment
+    visRectify[:,XX:XX*2:,:] = dst_R   # right image assignment
+
+    # draw horizontal lines
+    for y in range(0,YY,10):
+        cv2.line(visRectify, (0,y), (XX*2,y), (255,0,0))
+
+    N, XX, YY = dst_L.shape[::-1] # RGB image size
+
+    normal = np.zeros((YY, XX*2, N), np.uint8) # create a new image with a new size (height, 2*width)
+    normal[:,0:XX:,:] = img_l      # left image assignment
+    normal[:,XX:XX*2:,:] = img_r   # right image assignment
 
 
-N, XX, YY = dst_L.shape[::-1] # RGB image size
-
-visRectify = np.zeros((YY, XX*2, N), np.uint8) # create a new image with a new size (height, 2*width)
-visRectify[:,0:XX:,:] = dst_L      # left image assignment
-visRectify[:,XX:XX*2:,:] = dst_R   # right image assignment
-
-# draw horizontal lines
-for y in range(0,YY,10):
-    cv2.line(visRectify, (0,y), (XX*2,y), (255,0,0))
-
-N, XX, YY = dst_L.shape[::-1] # RGB image size
-
-normal = np.zeros((YY, XX*2, N), np.uint8) # create a new image with a new size (height, 2*width)
-normal[:,0:XX:,:] = img_l      # left image assignment
-normal[:,XX:XX*2:,:] = img_r   # right image assignment
-
-
-cv2.imshow('visRectify',visRectify)  # display image with lines
-cv2.imshow('normal',normal)  # display image with lines
-cv2.waitKey(0)
+    cv2.imshow('visRectify',visRectify)  # display image with lines
+    cv2.imshow('normal',normal)  # display image with lines
+    cv2.waitKey(0)
