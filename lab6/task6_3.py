@@ -54,30 +54,37 @@ def centroid_data(image, keypoints, patch_size=31) -> list:
 def brief(fast_result, patch_size=31) -> None:
     df = pd.read_csv(os.getenv("REPO_ROOT") + "/lab6/source/orb_descriptor_positions.txt", sep=' ', header=None)
     pairs = df.to_numpy()
-    descriptor = np.zeros(pairs.size, dtype=np.uint8)
+    descriptors = []
+
     half_size = patch_size // 2
 
-    for i, (patch, keypoint, centroid), (x1, y1, x2, y2) in enumerate(fast_result), pairs:
-        x1_rot, y1_rot = rotate_point(x1, y1, centroid)
-        x2_rot, y2_rot = rotate_point(x2, y2, centroid)
-        if patch[int(y1_rot)+half_size, int(x1_rot)+half_size] < patch[int(y2_rot)+half_size, int(x2_rot)+half_size]:
-            descriptor[i] = 1
+    for patch, keypoint, centroid in fast_result:
+        patch = patch.reshape((patch_size, patch_size))
+        patch = cv2.GaussianBlur(patch, (5, 5), 0)
+
+        descriptor = np.zeros(pairs.shape[0], dtype=np.uint8)
+        for i, (x1, y1, x2, y2) in enumerate(pairs):
+            x1_rot, y1_rot = rotate_point(x1, y1, centroid[2])
+            x2_rot, y2_rot = rotate_point(x2, y2, centroid[2])
+            descriptor[i] = np.array(patch[int(x1_rot), int(y1_rot)] < patch[int(x2_rot), int(y2_rot)])
+
+        descriptors.append((keypoint, descriptor))
     
-    return descriptor
+    return descriptors
     
 def match_descriptors(desc1, desc2, max_distance=30):
     matches = []
-    for (pt1, d1) in desc1:
+    for pt1, d1 in desc1:
         best_match = None
         best_distance = max_distance
-        for (pt2, d2) in desc2:
+        for pt2, d2 in desc2:
             distance = np.sum(d1 != d2)
             if distance < best_distance:
                 best_distance = distance
                 best_match = (pt1, pt2)
         if best_match:
             matches.append(best_match)
-    return matches        
+    return matches       
 
 
 def rotate_point(x, y, angle):
@@ -104,6 +111,6 @@ if __name__ == "__main__":
     desc_1 = brief(patches_1)
     desc_2 = brief(patches_2)
     matches = match_descriptors(desc_1, desc_2)
-    pm.plot_matches(img_1, img_2, matches)
+    plot_matches(img_1, img_2, matches)
     
     
