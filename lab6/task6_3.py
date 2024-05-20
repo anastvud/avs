@@ -51,7 +51,7 @@ def centroid_data(image, keypoints, patch_size=31) -> list:
         centroids.append((centroid_x, centroid_y, theta))
     return centroids
 
-def brief(fast_result, patch_size=31) -> None:
+def brief(fast_result, image, patch_size=31) -> None:
     df = pd.read_csv(os.getenv("REPO_ROOT") + "/lab6/source/orb_descriptor_positions.txt", sep=' ', header=None)
     pairs = df.to_numpy()
     descriptors = []
@@ -59,32 +59,39 @@ def brief(fast_result, patch_size=31) -> None:
     half_size = patch_size // 2
 
     for patch, keypoint, centroid in fast_result:
-        patch = patch.reshape((patch_size, patch_size))
-        patch = cv2.GaussianBlur(patch, (5, 5), 0)
+        x, y = keypoint
+        x = int(x)
+        y = int(y)
+        area = image[x - half_size // 2:x + half_size // 2 + 1, y - half_size // 2:y + half_size // 2 + 1]
+        area = cv2.GaussianBlur(area, (5, 5), 2.1)
 
         descriptor = np.zeros(pairs.shape[0], dtype=np.uint8)
         for i, (x1, y1, x2, y2) in enumerate(pairs):
             x1_rot, y1_rot = rotate_point(x1, y1, centroid[2])
             x2_rot, y2_rot = rotate_point(x2, y2, centroid[2])
-            descriptor[i] = np.array(patch[int(x1_rot), int(y1_rot)] < patch[int(x2_rot), int(y2_rot)])
+            descriptor[i] = np.array(area[int(x1_rot), int(y1_rot)] < area[int(x2_rot), int(y2_rot)])
 
         descriptors.append((keypoint, descriptor))
     
     return descriptors
     
-def match_descriptors(desc1, desc2, max_distance=30):
+def match_descriptors(desc1, desc2, max_distance=30, n=10):
     matches = []
-    for pt1, d1 in desc1:
-        best_match = None
-        best_distance = max_distance
-        for pt2, d2 in desc2:
-            distance = np.sum(d1 != d2)
-            if distance < best_distance:
-                best_distance = distance
-                best_match = (pt1, pt2)
-        if best_match:
-            matches.append(best_match)
-    return matches       
+    keypoints1, descriptors1 = zip(*desc1)
+    keypoints2, descriptors2 = zip(*desc2)
+    descriptors1 = np.array(descriptors1)
+    descriptors2 = np.array(descriptors2)
+
+    for i, d1 in enumerate(descriptors1):
+        distances = np.logical_xor(d1, descriptors2).sum(axis=1)
+        closest = np.argmin(distances)
+        if distances[closest] <= max_distance:
+            matches.append((keypoints1[i], keypoints2[closest], distances[closest]))
+
+    matches.sort(key=lambda x: x[2])
+    matches = matches[:n]
+
+    return [((int(x1), int(y1)), (int(x2), int(y2))) for ((x1, y1), (x2, y2), _) in matches]     
 
 
 def rotate_point(x, y, angle):
@@ -108,8 +115,8 @@ if __name__ == "__main__":
     patches_1 = fast(img_1_gray)
     patches_2 = fast(img_2_gray)
 
-    desc_1 = brief(patches_1)
-    desc_2 = brief(patches_2)
+    desc_1 = brief(patches_1, img_1_gray)
+    desc_2 = brief(patches_2, img_2_gray)
     matches = match_descriptors(desc_1, desc_2)
     plot_matches(img_1, img_2, matches)
     
