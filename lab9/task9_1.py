@@ -39,7 +39,7 @@ sobely = cv2.Sobel(img_gray, cv2.CV_64F, 0, 1, ksize=5)
 
 gradient_amplitude = np.sqrt(sobelx ** 2 + sobely ** 2)
 gradient_amplitude = gradient_amplitude / np.amax(gradient_amplitude)
-gradient_orientation = (np.rad2deg(np.arctan2(sobely, sobelx)) + 360) % 360
+gradient_orientation = np.rad2deg(np.arctan2(sobely, sobelx))
 
 
 moments = cv2.moments(img_bin)
@@ -54,7 +54,7 @@ for point in contours[0]:
     vector = (x - reference_point[0], y - reference_point[1])
     distance = np.sqrt(vector[0] ** 2 + vector[1] ** 2)
     angle = np.arctan2(vector[1], vector[0])
-    grad_orientation = int(gradient_orientation[y, x])
+    grad_orientation = (int(gradient_orientation[y, x]) + 360) % 360
     Rtable[grad_orientation].append((distance, angle))
 
 
@@ -72,11 +72,11 @@ gradient_orientation_target = (np.rad2deg(np.arctan2(sobely_target, sobelx_targe
 
 
 hough_space = np.zeros(target_gray.shape)
-threshold = 0.5
+# threshold = 0.5
 for y in range(target_gray.shape[0]):
     for x in range(target_gray.shape[1]):
-        if gradient_magnitude_target[y, x] > threshold:
-            orientation = int(gradient_orientation_target[y, x])
+        if gradient_magnitude_target[y, x] > 0.5:
+            orientation = (int(gradient_orientation_target[y, x]) + 360) % 360
             for r, fi in Rtable[orientation]:
                 x1 = int(x - r * np.cos((fi)))
                 y1 = int(y - r * np.sin((fi)))
@@ -91,6 +91,17 @@ for y, x in zip(max_coords[0], max_coords[1]):
     plt.imshow(cv2.cvtColor(target_img, cv2.COLOR_BGR2RGB))
     plt.plot([x], [y], '*', color='r')
 plt.show()
+
+for peak_y, peak_x in zip(*max_coords):
+    cv2.circle(target_img, (peak_x, peak_y), 2, (0, 0, 255), -1)
+    for point in contours[0]:
+        px, py = point[0]
+        x_offset = px - center_x
+        y_offset = py - center_y
+        new_x = peak_x + x_offset
+        new_y = peak_y + y_offset
+        if 0 <= new_x < target_img.shape[1] and 0 <= new_y < target_img.shape[0]:
+            target_img[new_y, new_x] = [0, 255, 0]
  
 
 cv2.namedWindow("Pattern Contour", cv2.WINDOW_NORMAL)
